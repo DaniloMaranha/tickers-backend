@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome            String
+  telefone        String
+  email           String   @unique
+  role            Role     @default(user)
+  cep             String
+  senha           String
+
+  eventosCriados  Evento[] @relation("CriadorEventos")
+  compras         Compra[]
+  favoritos       Favorito[]
+}
+
+model Compra {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  eventoId  String
+  user      User     @relation(fields: [userId], references: [id])
+  evento    Evento   @relation("EventoCompra", fields: [eventoId], references: [id])
+  data      DateTime @default(now())
+  qtd       Int
+}
+
+model Favorito {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  eventoId  String
+  user      User     @relation(fields: [userId], references: [id])
+  evento    Evento   @relation("FavoritoEvento", fields: [eventoId], references: [id])
+  data      DateTime @default(now())
+
+  @@unique([userId, eventoId])
+}
+
+model Evento {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  titulo               String
+  descricao            String
+  categoria            String
+  dataInicioISO        DateTime
+  dataInicio           String
+  horaInicio           String
+  dataFim              String?
+  local                Local
+  preco                Float
+  imagemCapa           String?
+  imagemCapaPublicId   String?
+  criadoPorId          String
+  criadoPor            User     @relation("CriadorEventos", fields: [criadoPorId], references: [id])
+  qtdIngressos         Int
+  qtdIngressosVendidos Int      @default(0)
+  status               Status   @default(ativo)
+
+  compras              Compra[] @relation("EventoCompra")
+  favoritos            Favorito[] @relation("FavoritoEvento")
+}
+
+type Local {
+  nome       String
+  endereco   String
+  cidade     String
+  estado     String
+  cep        String
+}
+
+enum Role {
+  user
+  admin
+  promoter
+}
+
+enum Status {
+  ativo
+  cancelado
+  encerrado
+}
